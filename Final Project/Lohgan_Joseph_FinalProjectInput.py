@@ -1,5 +1,10 @@
 # Lohgan Joseph
 # 2038027
+"""
+If FileNotFound Error occurs on first run, check explorer tab and select 'Open Folder' and select a folder
+to run code in. 
+"""
+
 
 import csv
 from datetime import datetime
