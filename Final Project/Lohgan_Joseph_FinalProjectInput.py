@@ -16,7 +16,8 @@ class OutputInventory:
         with open("FinalProject_FullInventory.csv", 'w') as file:
             items = self.item_list
             # Get order of keys to write to file based on manufacturer in alphabetical order
-            keys = sorted(items.keys(), key = lambda x: items[x]['manufacturer'], reverse=False)
+            # Used ChatGPT to get assistance and insight to implementing lambda to sort the keys (Only AI Usage)
+            keys = sorted(items.keys(), key = lambda x: items[x]['manufacturer'], reverse=False) 
             for item in keys:
                 id = item
                 man_name = items[item]['manufacturer']
