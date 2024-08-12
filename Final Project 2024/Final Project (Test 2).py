@@ -1,132 +1,42 @@
-import csv
+import pandas as pd
 from datetime import datetime
 
 # File paths
-manufacturer_file = 'ManufacturerList.csv'
-price_file = 'PriceList.csv'
-service_date_file = 'ServiceDatesList.csv'
+manufacturer_file = 'recoded-lohgan/2348-Repo/Final Project 2024/ManufacturerList.csv'
+price_file = 'recoded-lohgan/2348-Repo/Final Project 2024/PriceList.csv'
+service_date_file = 'recoded-lohgan/2348-Repo/Final Project 2024/ServiceDatesList.csv'
 
-# Dictionaries to store the data
-manufacturer_data = {}
-price_data = {}
-service_date_data = {}
+# Read the CSV files into DataFrames
+manufacturer_df = pd.read_csv(manufacturer_file)
+price_df = pd.read_csv(price_file)
+service_date_df = pd.read_csv(service_date_file)
 
-# Reading ManufacturerList.csv
-with open(manufacturer_file, 'r') as file:
-    reader = csv.reader(file)
-    next(reader)  # Skip header
-    for row in reader:
-        item_id = row[0]
-        manufacturer_data[item_id] = {
-            'manufacturer': row[1],
-            'item_type': row[2],
-            'damaged': row[3] if len(row) > 3 else ''
-        }
+# Merge the DataFrames on 'item_id'
+inventory_df = pd.merge(manufacturer_df, price_df, on='item_id')
+inventory_df = pd.merge(inventory_df, service_date_df, on='item_id')
 
-# Reading PriceList.csv
-with open(price_file, 'r') as file:
-    reader = csv.reader(file)
-    next(reader)  # Skip header
-    for row in reader:
-        item_id = row[0]
-        price_data[item_id] = row[1]
+# Convert 'service_date' to datetime
+inventory_df['service_date'] = pd.to_datetime(inventory_df['service_date'], format='%m/%d/%Y')
 
-# Reading ServiceDatesList.csv
-with open(service_date_file, 'r') as file:
-    reader = csv.reader(file)
-    next(reader)  # Skip header
-    for row in reader:
-        item_id = row[0]
-        service_date_data[item_id] = row[1]
+# Sort by manufacturer for full inventory
+full_inventory_df = inventory_df.sort_values('manufacturer')
 
-# Processing and creating the output files
-full_inventory = []
-laptop_inventory = []
-phone_inventory = []
-tv_inventory = []
-past_service_date_inventory = []
-damaged_inventory = []
+# Write full inventory to CSV
+full_inventory_df.to_csv('recoded-lohgan/2348-Repo/Final Project 2024/FullInventory.csv', index=False)
 
-# Current date for past service date comparison
-today = datetime.today()
+# Write item-type specific inventory files
+for item_type in inventory_df['item_type'].unique():
+    item_type_df = inventory_df[inventory_df['item_type'] == item_type]
+    item_type_df = item_type_df.sort_values('item_id')
+    item_type_df.to_csv(f'recoded-lohgan/2348-Repo/Final Project 2024/{item_type}Inventory.csv', index=False)
 
-# Default service date
-default_service_date = '01/01/1900'
+# Filter and sort for past service date inventory
+today = pd.to_datetime(datetime.today().strftime('%Y-%m-%d'))
+past_service_date_df = inventory_df[inventory_df['service_date'] < today]
+past_service_date_df = past_service_date_df.sort_values('service_date')
+past_service_date_df.to_csv('recoded-lohgan/2348-Repo/Final Project 2024/PastServiceDateInventory.csv', index=False)
 
-# Combining the data
-for item_id, details in manufacturer_data.items():
-    manufacturer = details['manufacturer']
-    item_type = details['item_type']
-    damaged = details['damaged']
-    price = price_data.get(item_id, '0')
-    service_date = service_date_data.get(item_id, default_service_date)
-
-    # Full Inventory
-    full_inventory.append([item_id, manufacturer, item_type, price, service_date, damaged])
-
-    # Item Type Inventory
-    if item_type.lower() == 'laptop':
-        laptop_inventory.append([item_id, manufacturer, price, service_date, damaged])
-    elif item_type.lower() == 'phone':
-        phone_inventory.append([item_id, manufacturer, price, service_date, damaged])
-    elif item_type.lower() == 'tv':
-        tv_inventory.append([item_id, manufacturer, price, service_date, damaged])
-
-    # Past Service Date Inventory
-    service_date_obj = datetime.strptime(service_date, '%m/%d/%Y')
-    if service_date_obj < today:
-        past_service_date_inventory.append([item_id, manufacturer, item_type, price, service_date, damaged])
-
-    # Damaged Inventory
-    if damaged.lower() == 'damaged':
-        damaged_inventory.append([item_id, manufacturer, item_type, price, service_date, damaged])
-
-# Sorting the lists as required
-
-# Sort full inventory by manufacturer name
-def sort_by_manufacturer(item):
-    return item[1]
-full_inventory.sort(key=sort_by_manufacturer)
-
-# Sort laptop inventory by item ID
-def sort_by_item_id(item):
-    return int(item[0])
-laptop_inventory.sort(key=sort_by_item_id)
-
-phone_inventory.sort(key=sort_by_item_id)
-
-tv_inventory.sort(key=sort_by_item_id)
-
-# Sort past service date inventory by service date (oldest to most recent)
-def sort_by_service_date(item):
-    return datetime.strptime(item[4], '%m/%d/%Y')
-past_service_date_inventory.sort(key=sort_by_service_date)
-
-# Sort damaged inventory by price (most expensive to least expensive)
-def sort_by_price(item):
-    return int(item[3])
-damaged_inventory.sort(key=sort_by_price, reverse=True)
-
-# Output file names and their corresponding data
-output_files = {
-    'FullInventory.csv': full_inventory,
-    'LaptopInventory.csv': laptop_inventory,
-    'PhoneInventory.csv': phone_inventory,
-    'TVInventory.csv': tv_inventory,
-    'PastServiceDateInventory.csv': past_service_date_inventory,
-    'DamagedInventory.csv': damaged_inventory
-}
-
-# Writing output files
-for file_name, data in output_files.items():
-    with open(file_name, 'w', newline='') as file:
-        writer = csv.writer(file)
-        if 'FullInventory' in file_name:
-            writer.writerow(['item_id', 'manufacturer', 'item_type', 'price', 'service_date', 'damaged'])
-        elif 'PastServiceDateInventory' in file_name:
-            writer.writerow(['item_id', 'manufacturer', 'item_type', 'price', 'service_date', 'damaged'])
-        elif 'DamagedInventory' in file_name:
-            writer.writerow(['item_id', 'manufacturer', 'item_type', 'price', 'service_date', 'damaged'])
-        else:
-            writer.writerow(['item_id', 'manufacturer', 'price', 'service_date', 'damaged'])
-        writer.writerows(data)
+# Filter and sort for damaged inventory
+damaged_df = inventory_df[inventory_df['damaged'] == 'damaged']
+damaged_df = damaged_df.sort_values('price', ascending=False)
+damaged_df.to_csv('recoded-lohgan/2348-Repo/Final Project 2024/DamagedInventory.csv', index=False)

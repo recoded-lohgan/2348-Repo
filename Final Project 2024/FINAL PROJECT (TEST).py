@@ -20,6 +20,7 @@ class Item:
 """
 Part 2: Reading the csv file.
 This is where the function for opening the csv files will be
+I'll implement the pandas function
 """
 
 def read_csv(file_name):
@@ -39,9 +40,9 @@ right repository and path.
 """
 
 def load_data():
-    manufacturer_data = read_csv('ManufacturerList.csv')
-    price_data = read_csv('PriceList.csv')
-    service_date_data = read_csv('ServiceDatesList.csv')
+    manufacturer_data = read_csv('recoded-lohgan/2348-Repo/Final Project 2024/ManufacturerList.csv')
+    price_data = read_csv('recoded-lohgan/2348-Repo/Final Project 2024/PriceList.csv')
+    service_date_data = read_csv('recoded-lohgan/2348-Repo/Final Project 2024/ServiceDatesList.csv')
     return manufacturer_data, price_data, service_date_data
 
 """
@@ -89,4 +90,69 @@ Part 6: Writing the inventory
 Here's the portion that writes the full inventory and outputs it as a csv.
 """
 
+# Writing FullInventory
+def write_full_inventory(items):
+    items.sort(key=sort_by_manufacturer)
+    with open('FullInventory.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        for item in items:
+            writer.writerow([item.item_id, item.manufacturer, item.item_type, item.price, item.service_date, item.damaged])
 
+# Writing Item Type/LaptopInventory.csv
+def write_item_type_inventories(items):
+    item_types = {}
+    for item in items:
+        if item.item_type not in item_types:
+            item_types[item.item_type] = []
+        item_types[item.item_type].append(item)
+
+    for item_type, items in item_types.items():
+        items.sort(key = sort_by_item_id)
+        with open(f'{item_type}LaptopInventory.csv', mode = 'w', newline = '') as file:
+            writer = csv.writer(file)
+            for item in items:
+                writer.writerow([item.item_id, item.manufacturer, item.price, item.service_date, item.damaged])
+
+# Writing PastServiceDateInventory.csv
+def write_past_service_date_inventory(items):
+    today = datetime.today().date()
+    past_service_items = [item for item in items if datetime.strptime(item.service_date, '%m/%d/%Y').date() < today]
+    past_service_items.sort(key = sort_by_service_date)
+    with open('PastServiceDateInventory.csv', mode = 'w', newline = '') as file:
+        writer = csv.writer(file)
+        for item in past_service_items:
+            writer.writerow([item.item_id, item.manufacturer, item.item_type, item.price, item.service_date, item.damaged])
+
+# Writing DamagedInventory.csv
+def write_damaged_inventory(items):
+    damaged_items = [item for item in items if item.damaged]
+    damaged_items.sort(key=sort_by_price, reverse=True)
+    with open('DamagedInventory.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        for item in damaged_items:
+            writer.writerow([item.item_id, item.manufacturer, item.item_type, item.price, item.service_date])
+
+# Step 9: Generate all required reports
+def generate_reports(items):
+    """
+    Generates all inventory reports: FullInventory, Item Type Inventories, 
+    Past Service Date Inventory, and Damaged Inventory.
+    """
+    write_full_inventory(items)
+    write_item_type_inventories(items)
+    write_past_service_date_inventory(items)
+    write_damaged_inventory(items)
+
+# Step 10: Main function to orchestrate the loading, processing, and report generation
+def main():
+    """
+    Main function to execute the program. It loads data from CSV files,
+    processes it, and generates the required inventory reports.
+    """
+    manufacturer_data, price_data, service_date_data = load_data()
+    items = process_data(manufacturer_data, price_data, service_date_data)
+    generate_reports(items)
+
+# Step 11: Execute the main function
+if __name__ == '__main__':
+    main()
